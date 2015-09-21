@@ -205,9 +205,20 @@ function elt(tagname, cls /*, ... elts*/) {
 	var e = document.createElement(tagname);
 	if (cls) e.className = cls;
 	for (var i = 2; i < arguments.length; ++i) {
-	var elt = arguments[i];
-	if (typeof elt == "string") elt = document.createTextNode(elt);
-	e.appendChild(elt);
+		var elt = arguments[i];
+		if (typeof elt == "string") {
+			if (elt.indexOf("<")===-1){
+				elt = document.createTextNode(elt);
+				e.appendChild(elt);
+			} else {
+				e.innerHTML = elt;
+				e.style.maxWidth="initial";
+				e.style.padding="10px";
+			}
+		} else {
+			e.appendChild(elt);
+			e.style.maxWidth="40em";
+		}
 	}
 	return e;
 }
@@ -313,6 +324,9 @@ CodeMirror.registerHelper("hint", "haxe",
 			if (w.substring(0,token.length).toLowerCase()==token){
 				var w2 = ar.length>1?ar[1]:"";
 				var t = ar.length>2?ar[2]:"";
+				if (t==="C"){
+					t += "_"+w.split(".")[1];
+				}
 				var d = ar.length>3?ar[3]:"";
 				matches.push({text:w,displayText:w2,render:renderHint,tag:t,doc:d});
 			}
@@ -475,7 +489,6 @@ function tryLoadGist(id) {
 			setEditorClean();
 			unfocus();
 			stopClick();
-			compile(["restart"],code);
 		}
 	}
 	githubHTTPClient.setRequestHeader("Content-type","application/x-www-form-urlencoded");

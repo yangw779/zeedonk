@@ -51,16 +51,12 @@ class Gfx {
 	/** Create a screen with a given width, height and scale. Also inits Text. */
 	public static function resizescreen(width:Float, height:Float, scale:Int = 1) {
 		initgfx(Std.int(width), Std.int(height), scale);
-		#if haxegonweb
-			onResize(null);
-		#end
 		Text.init(gfxstage);
 		showfps = false;
 		gfxstage.addChild(screen);
 		
 		updategraphicsmode();
 	}
-	
 	public static var showfps:Bool;
 	private static var render_fps:Int;
 	private static var render_fps_max:Int = -1;
@@ -218,6 +214,15 @@ class Gfx {
 		return fixedstring;
 	}
 	
+	public static function clearimages() {
+		imageindex = new Map<String, Int>();
+		for(i in 0 ... images.length){
+		  images[i].dispose();
+		}
+		
+		images = [];
+	}
+	
 	public static function loadimagestring(imagename:String, inputstring:String, col1:Int = -1, col2:Int = -1, col3:Int = -1, col4:Int = -1) {
 		inputstring = replacechar(inputstring, " ", "");
 		inputstring = replacechar(inputstring, "\n", "");
@@ -306,6 +311,20 @@ class Gfx {
 		
 		var t:BitmapData = new BitmapData(Math.floor(width), Math.floor(height), true, 0);
 		images.push(t);
+	}
+	
+	/** Resizes an image to a new size and stores it with the same label. */
+	public static function resizeimage(imagename:String, scale:Float) {
+		var oldindex:Int = imageindex.get(imagename);
+		var newbitmap:BitmapData = new BitmapData(Std.int(images[oldindex].width * scale), Std.int(images[oldindex].height * scale), true, 0);
+		
+		shapematrix.identity();
+		shapematrix.scale(Math.floor(scale), Math.floor(scale));
+	  newbitmap.draw(images[oldindex], shapematrix);
+		shapematrix.identity();
+		
+		images[oldindex].dispose();
+		images[oldindex] = newbitmap;
 	}
 	
 	/** Returns the width of the image. */
@@ -1455,60 +1474,10 @@ class Gfx {
 	
 	/** Just gives Gfx access to the stage. */
 	private static function init(stage:Stage) {
-		if (initrun) {
-			gfxstage = stage;
-			
-			onResize(null);
-			stage.addEventListener(Event.RESIZE, onResize);
-		}
+		if (initrun) gfxstage = stage;
 		clearscreeneachframe = true;
 		linethickness=1;
 	}	
-	
-	#if html5
-	private static function onResize(e:Event):Void {
-		//trace(gfxstage.stageWidth, gfxstage.stageHeight);
-		//Window.devicePixelratio
-		var scaleX:Float;
-		var scaleY:Float;
-		
-		if (Game.editor()) {
-			scaleX = gfxstage.stageWidth / screenwidth;
-			scaleY = gfxstage.stageHeight / screenheight;
-			var jsscaleeditor:Float = Math.min(scaleX, scaleY);
-			
-			gfxstage.scaleX = jsscaleeditor;
-			gfxstage.scaleY = jsscaleeditor;
-			
-			gfxstage.x = (gfxstage.stageWidth - screenwidth * jsscaleeditor) / 2;
-			gfxstage.y = (gfxstage.stageHeight - screenheight * jsscaleeditor) / 2;
-		}else {
-			var pixelratio:Float = js.Browser.window.devicePixelRatio;
-			var innerwidth:Int = js.Browser.window.innerWidth;
-			var innerheight:Int = js.Browser.window.innerHeight;
-			/*
-			trace("pixel ratio: " + pixelratio);
-			trace("window size (" + gfxstage.stageWidth + ", " + gfxstage.stageHeight + ")");
-			trace("inner window size (" + js.Browser.window.innerWidth + ", " + js.Browser.window.innerHeight + ")");
-			trace("window size after scaling: (" + (gfxstage.stageWidth * pixelratio) + ", " + (gfxstage.stageHeight * pixelratio) + ")");
-			trace("window size (" + screenwidth + ", " + screenheight + ")");
-			*/
-			
-			scaleX = Math.floor(innerwidth / screenwidth);
-			scaleY = Math.floor(innerheight / screenheight);
-			
-			var jsscale:Float = Math.min(scaleX, scaleY);
-			
-			untyped __js__('var c = document.getElementById(\'openfl-content\'); c.style.transform = \'scale(\'+(1/window.devicePixelRatio)+\',\'+(1/ window.devicePixelRatio)+\')\'');
-			
-			gfxstage.scaleX = jsscale;
-			gfxstage.scaleY = jsscale;
-			
-			gfxstage.x = (innerwidth - screenwidth * jsscale) / 2;
-			gfxstage.y = (innerheight - screenheight * jsscale) / 2;
-		}
-	}
-	#end
 	
 	/** Called from resizescreen(). Sets up all our graphics buffers. */
 	private static function initgfx(width:Int, height:Int, scale:Int) {

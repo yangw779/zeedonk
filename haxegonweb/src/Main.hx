@@ -4,7 +4,10 @@ import haxegon.*;
 @:expose
 class Webbridge {
 	public function runScript(s:String) {
-		if(Webscript.readytogo) Webscript.loadscript(s);
+		if (Webscript.readytogo) {
+			Webscript.myscript = s;
+			Webscript.loadwhenready = true;
+		}
   }
 	
 	public function get_background_colour():Int {
@@ -24,8 +27,10 @@ class Webbridge {
 	}
 	
 	public function stop() {
-		Gfx.resizescreen(192, 120, 4);
-		Text.setfont("default", 1);
+		Gfx.resizescreen(240, 150);
+		Text.setfont(Webfont.DEFAULT, 1);
+		Webscript.cleanupimages();
+		Text.cleartextcache();
 		Webscript.scriptloaded = false;
 		Webscript.runscript = false;
 		Webscript.errorinscript = false;

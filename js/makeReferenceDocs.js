@@ -24,8 +24,7 @@ for (var i=0;i<haxeHintArray.length;i++){
 		moduleName = fn.substring(0,dotIndex);
 		if (modules.indexOf(moduleName)===-1){
 			modules.push(moduleName);
-
-			if (r[2]==="E"){
+			if (r[2]==="E"||r[2]==="Col"){
 				enums.push(moduleName);
 			}
 		}
@@ -112,6 +111,12 @@ function genReferencePage(moduleName){
 	moduleHeader+="</div><p>";
 
 	var enumContents ="<div id='enumFrame'>";
+
+	if (moduleName==="Col"){
+		enumContents ="<div id='colorFrame'>";		
+	} else if (moduleName==="Font"){		
+		enumContents="<table>"
+	}
 	var enumAdded=false;
 	var counter=0;
 	for (var i=0;i<haxeHintArray.length;i++){
@@ -155,13 +160,33 @@ function genReferencePage(moduleName){
 		row+="<div>"+docString+"</div></td></tr>";
 		pageContents+=row;
 		oldPreface=preface;
-		if (enumAdded){
-			enumContents+=", ";
+		if (moduleName==="Col"){
+
+			if (enumAdded){
+				enumContents+=" <wbr>";
+			}
+			enumContents+="<span class='Col_"+postface+" colbubble'>"+postface+"</span>";
+		} else if (moduleName==="Font"){
+
+			var row = '<tr class="' +  ((counter%2==0)?"even":"odd")+'">';
+			doc = doc.replace("images/fonts/","../images/fonts/black_")
+			doc = doc.replace("<img","<img style='padding-top:20px; padding-bottom:20px;padding-left:5px;padding-right:10px;'");
+			doc = "<div style='text-align:center;padding:5px;background:white;border-radius:5px;border:1px solid gray;'>"+doc+"</div>"
+			enumContents+=row+"<td >"+postface+"<p>"+doc+"</td></tr>";
+
+		}else {
+			if (enumAdded){
+				enumContents+=", <wbr>";
+			}
+			enumContents+=postface;
 		}
-		enumContents+=postface;
 		enumAdded=true;
 	}
-	enumContents+="</div>";
+	 if (moduleName==="Font"){
+	 	enumContents+="</table>"
+	 } else {
+		enumContents+="</div>";
+	}
 	var tableHeader = "<h3 class='moduleHeader'>"+ moduleName+"</h3><p>";
 	pageContents = pageContents;
 

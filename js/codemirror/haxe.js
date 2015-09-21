@@ -66,7 +66,11 @@ CodeMirror.defineMode("haxe", function(config, parserConfig) {
       stream.eatWhile(/[\da-f]/i);
       return ret("number", "number");
     } else if (/\d/.test(ch) || ch == "-" && stream.eat(/\d/)) {
-      stream.match(/^\d*(?:\.\d*)?(?:[eE][+\-]?\d+)?/);
+      if (stream.match(/^\d*\.\./,false)){
+        stream.match(/^\d*/);
+      } else {
+        stream.match(/^\d*(?:\.\d*)?(?:[eE][+\-]?\d+)?/);
+      }
       return ret("number", "number");
     } else if (state.reAllowed && (ch == "~" && stream.eat(/\//))) {
       toUnescaped(stream, "/");
@@ -198,8 +202,8 @@ CodeMirror.defineMode("haxe", function(config, parserConfig) {
       return false;
     }
     var state = cx.state;
+    cx.marked = "def";
     if (state.context) {
-      cx.marked = "def";
       if (inList(state.localVars)) return;
       state.localVars = {name: varname, next: state.localVars};
     } else {
@@ -392,7 +396,7 @@ CodeMirror.defineMode("haxe", function(config, parserConfig) {
   return {
     startState: function(basecolumn) {
       var defaulttypes = ["Int", "Float", "String", "Void", "Std", "Bool", "Dynamic", "Array"];
-      return {
+      var state =  {
         tokenize: haxeTokenBase,
         reAllowed: true,
         kwAllowed: true,
@@ -405,6 +409,7 @@ CodeMirror.defineMode("haxe", function(config, parserConfig) {
       };
       if (parserConfig.globalVars && typeof parserConfig.globalVars == "object")
         state.globalVars = parserConfig.globalVars;
+      return state;
     },
 
     token: function(stream, state) {

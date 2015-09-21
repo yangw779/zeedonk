@@ -36,7 +36,12 @@ function update(){
   Text.display(Text.CENTER,Gfx.screenheightmid - Text.height(), "\"" + fontlist[currentfont] + "\"", Gfx.hsl((currentfont * coloroffset), 0.5, 0.5));
   
   Text.setfont(fontlist[currentfont], 1);
-  Text.display(10 - scrollposition,Gfx.screenheightmid + 2, fontcredits[currentfont], Gfx.hsl((currentfont * coloroffset), 0.15, 0.4));
+  
+  if(Text.len(fontcredits[currentfont])< Gfx.screenwidth){
+  	Text.display(Text.CENTER,Gfx.screenheightmid + 2, fontcredits[currentfont], Gfx.hsl((currentfont * coloroffset), 0.15, 0.4));  
+  }else{
+  	Text.display(10 - scrollposition,Gfx.screenheightmid + 2, fontcredits[currentfont], Gfx.hsl((currentfont * coloroffset), 0.15, 0.4));
+  }
   
   //Update scroller position
   counter++;
@@ -60,7 +65,7 @@ function loadfontinfo(){
   fontlist = [Font.ZERO4B11, Font.C64, Font.COMIC, Font.CRYPT, Font.DEFAULT,
               Font.DOS, Font.GANON, Font.NOKIA, Font.OLDENGLISH, Font.PIXEL,
               Font.PRESSSTART, Font.RETROFUTURE, Font.ROMAN, Font.SPECIAL,
-              Font.TINY, Font.YOSTER];
+              Font.THIN, Font.TINY, Font.YOSTER];
   
   fontcredits = [];
   fontcredits.push("04B11 by Yuji Oshimoto, 04.jp.org");
@@ -77,13 +82,9 @@ function loadfontinfo(){
   fontcredits.push("Retro Future Heavy, by Cyclone Graphics.");
   fontcredits.push("\"Roman\" Font from PC Paint by Mouse Systems. Converted by codeman38, zone38.net");
   fontcredits.push("\"Special\" Font from PC Paint by Mouse Systems. Converted by codeman38, zone38.net");
-  fontcredits.push("Tiny three by three font! Made especially for Zeedonk by Terry.");
+  fontcredits.push("Small, thin 3x7 font with lowercase letters! Made for Zeedonk by Terry.");
+  fontcredits.push("Useless unreadable 3x3 font! Made for Zeedonk by Terry.");
   fontcredits.push("Inspired by the font from Yoshi's Island. Converted by codeman38, zone38.net");
-
-  //Load in all the fonts now
-  for(i in 0 ... fontlist.length){
-    Text.setfont(fontlist[i], 1);
-  }
 }
   
 function initstars(){

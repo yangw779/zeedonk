@@ -9,6 +9,7 @@ import openfl.net.*;
 @:access(haxegon.Game)
 @:access(haxegon.Gfx)
 @:access(haxegon.Input)
+@:keep
 class Webscript {
 	public static var myscript:String;
 	public static var loadedscript:Array<String>;
@@ -18,6 +19,7 @@ class Webscript {
 	
 	public static var skipnextloadscript:Bool = false;
 	public static var readytogo:Bool = false;
+	public static var loadwhenready:Bool = false;
 	
 	public static var scriptloaded:Bool;
 	public static var runscript:Bool;
@@ -27,12 +29,16 @@ class Webscript {
 	public static var initfunction:Dynamic;
 	public static var updatefunction:Dynamic;
 	
+	public static var donkeyhop:Int = 0;
+	public static var zebrahop:Int = 0;
+	
 	public static function init() {
 		scriptloaded = false;
 		runscript = false;
 		pausescript = false;
 		errorinscript = false;
 		
+		Text.cleartextcache();
 		Text.setfont(Webfont.ZERO4B11, 1);
 		Text.setfont(Webfont.C64, 1);
 		Text.setfont(Webfont.COMIC, 1);
@@ -46,10 +52,13 @@ class Webscript {
 		Text.setfont(Webfont.RETROFUTURE, 1);
 		Text.setfont(Webfont.ROMAN, 1);
 		Text.setfont(Webfont.SPECIAL, 1);
+		Text.setfont(Webfont.THIN, 1);
 		Text.setfont(Webfont.TINY, 1);
 		Text.setfont(Webfont.YOSTER, 1);
 		
 		Text.setfont(Webfont.DEFAULT, 1);
+		
+		cleanupimages();
 		
 		try {
 			#if haxegonwebhtml5debug
@@ -68,7 +77,14 @@ class Webscript {
 			#end
 		}
 		readytogo = true;
-
+	}
+	
+	public static function cleanupimages() {
+		Gfx.clearimages();
+	  Gfx.loadimagestring("__library_zebra", "YKaaapZZZSaaaaaaaaaabeaaaaraaaacE6aaaEOaaavnaaac6avkFqaiHvkaquEHaac6aCabqauaauafaa");
+		Gfx.loadimagestring("__library_donkey", "YKaaaks4f3iMeqaaaaeqaaabeaaacE6aafkCaabsEaaaac6aaaaEEE6akEE8acEECqaCakaakac6afabqa");
+		Gfx.resizeimage("__library_zebra", 3);
+		Gfx.resizeimage("__library_donkey", 3);
 	}
 	
 	public static var myLoader:URLLoader;
@@ -123,10 +139,15 @@ class Webscript {
 		#else
 		if (errorinscript) {
 		#end
-			Text.setfont("default", 1);
+			Text.setfont(Webfont.DEFAULT, 1);
 			Gfx.clearscreen(Gfx.rgb(32, 0, 0));
 			Text.display(Text.CENTER, Text.CENTER, "ERROR! ERROR! ERROR!", Col.RED);
-		}else if (script_waitforreset) {
+		}else if (loadwhenready) {
+			if (readytogo) {
+	  		loadwhenready = false;	
+				loadscript(myscript);
+			}
+	  }else if (script_waitforreset) {
 			if (!waitforreset) {
 				scriptfound_enginereset();
 				script_waitforreset = false;
@@ -142,11 +163,26 @@ class Webscript {
 				Game.time++;
 			}	
 		}else {
-			counter+=10;
+			counter += 1;
+			if (counter % 120 == 0) donkeyhop = 10;
+			if (counter % 120 == 60) zebrahop = 10;
+			
+			if (zebrahop > 0) zebrahop--;
+			if (donkeyhop > 0) donkeyhop--;
+			/*
+			
+			for (i in 0 ... 16) {
+				Gfx.fillbox(0, (i * 10) - ((counter/20) % 10) * 2, Gfx.screenwidth, 10, i%2==0?Col.BLACK:Col.WHITE);
+			}
+			
+			Gfx.fillbox(10, 10, Gfx.screenwidth - 20, Gfx.screenheight - 20, Col.DARKBROWN);
+			*/
+			/*
+			counter += 10;
 			Gfx.clearscreen(Col.GRAY);
-			var gap:Int = Std.int((Gfx.screenheightmid / 6));
-			for (i in 0 ... 6) {
-				if (i % 2 == 0) {
+			var gap:Int = Std.int((Gfx.screenheightmid / 5));
+			for (i in 0 ... 5) {
+				if (i % 2 == 1) {
 					Gfx.fillbox(0, Gfx.screenheightmid + (i * gap), Gfx.screenwidth, gap, Col.WHITE);
 				}else {
 					Gfx.fillbox(0, Gfx.screenheightmid + (i * gap), Gfx.screenwidth, gap, Col.BLACK);
@@ -154,7 +190,7 @@ class Webscript {
 			}
 			
 			
-			Text.display(Gfx.screenwidth - 6, Gfx.screenheight - Text.height(), "zeedonk alpha v0.1", Col.WHITE, { align:Text.RIGHT } );
+			Text.display(Gfx.screenwidth - 6, Gfx.screenheight - Text.height()-2, "zeedonk alpha v0.5", Col.WHITE, { align:Text.RIGHT } );
 			
 			var msg:String = "WAITING FOR SCRIPTFILE...";
 			var startpos:Float = Gfx.screenwidthmid - Text.len(msg) / 2;
@@ -164,8 +200,46 @@ class Webscript {
 					Text.display(startpos + currentpos, Gfx.screenheightmid - 35 + Math.sin((((i*5)+counter)%360) * Math.PI * 2 / 360)*5, S.mid(msg, i, 1), Col.WHITE);
 				}
 				currentpos += Text.len(S.mid(msg, i, 1));
-			}
+			}*/
+			
+			Gfx.clearscreen(Col.LIGHTBLUE);
+			Gfx.fillbox(0, Gfx.screenheightmid, Gfx.screenwidth, Gfx.screenheightmid, Col.GREEN);
+			Gfx.drawimage(Gfx.CENTER + 80, Gfx.CENTER-5 - zebrahop%5, "__library_donkey");
+			Gfx.drawimage(Gfx.CENTER - 80, Gfx.CENTER-5 - donkeyhop%5, "__library_zebra");
+			Text.display(Text.CENTER, Text.CENTER + 40, "WAITING FOR SCRIPTFILE", Col.WHITE);
+			Text.display(Text.CENTER, Gfx.screenheight - Text.height()-14, "zeedonk alpha v0.5", Col.WHITE);
 		}
+		/*
+		Gfx.clearscreen(Col.DARKBLUE);
+		
+		Text.setfont(Webfont.THIN, 1);
+		
+		Text.display(1, 1, "the quick brown, fox jumped. Over");
+		Text.display(1, 10, "the lazy dog! Oh no!");
+		
+		Text.display(1, 21, "The quick brown fox jumped over".toUpperCase());
+		Text.display(1, 30, "the lazy dog?".toUpperCase());
+		
+		Text.display(1, 50, "1234567890,".toUpperCase());
+		Text.display(1, 60, "a\"b\\c/d#e£f$g%h^i&j*k(l)m{o}A<B>C_D".toUpperCase());
+		
+		Text.display(1, 80, "What does that say? I can't read it!");
+		Text.display(1, 95, "It reads: 'stupid font`");
+		*/
+		/*
+		Text.changesize(2);
+		Text.display(Text.CENTER,1,"TinyBox");
+		Text.changesize(1);
+		var i=0;
+		Text.display(3,30+13*(i++),"Shortcuts:");
+		Text.display(3,30+13*(i++),"~ Arrow keys or wsad,to scroll/set note length.");
+		Text.display(3,30+13*(i++),"~ +/- or q and e to control volume.");
+		Text.display(3,30+13*(i++),"~ Right click on instruments to randomize,");
+		Text.display(3,30+13*(i++),"~ Or press numbers when hovering to enter.");
+		Text.display(3,30+13*(i++),"~ You can press c/v to copy/paste sequences.");
+		Text.display(3,30+13*(i++),"~ Right click notes/sequences to remove.");
+		Text.display(3,30+13*(i++),"~ Z to undo.");
+		*/
 		
 		if (Gfx.showfps) {
 			oldfont = Text.currentfont;
@@ -245,6 +319,11 @@ class Webscript {
 		interpreter.variables.set("trace", Webdebug.log);
 		interpreter.variables.set("Math.abs", Gfx.fastAbs);
 		
+		//Set default font
+		Text.setfont(Webfont.DEFAULT, 1);
+		Text.cleartextcache();
+		Gfx.clearscreeneachframe = true;
+		
 		runscript = true;
 		try{
 			parsedscript = parser.parseString(myscript);
@@ -280,17 +359,16 @@ class Webscript {
 			initfunction = interpreter.variables.get("new");
 			updatefunction = interpreter.variables.get("update");
 			
-			//Set default font
-			Text.setfont("default", 1);
 			if (initfunction != null) {
 				try {
-					initfunction();	
+					initfunction();
 				}catch (e:Dynamic) {
 					Err.log(Err.PARSER_NEW, Err.process(e));
 				}
 			}
 			
 			if (updatefunction == null) {
+				Gfx.clearscreeneachframe = false;
 				Webscript.pausescript = true;
 			}
 		}
