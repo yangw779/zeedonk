@@ -13,7 +13,7 @@ While loops:
 var x = 5;
 while (x<10) {
 	x++;
-	trace(x)
+	trace(x);
 }
 
 -
@@ -26,7 +26,7 @@ Do loops:
 var x = 5;
 do {
 	x++;
-	trace(x)
+	trace(x);
 } while (x<10)
 
 -
@@ -36,11 +36,21 @@ For loops:
 -
 
 for (i in 0...100)
-	trace((100-i)+bottles of beer on the wall)
+	trace((100-i)+bottles of beer on the wall);
 
 -
 
-For loops can only go up. sorry.
+For loops can only go up. Sorry.
+
+More for loops:
+
+-
+
+var exclamation = ["I","like","big","butts"];
+for (s in exclamation)
+  trace(s);
+
+-
 
 <a class="tutoriallink"  href="https://en.wikipedia.org/wiki/Fibonacci_number">Fibonacci number</a> printer
 
@@ -54,7 +64,7 @@ function f(n) {
 /* if you make the value at all big,  */
 /* your browser will explode.         */
 /* So don't do that!                  */
-trace(f(5))
+trace(f(5));
 
 -
 

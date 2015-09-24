@@ -1,7 +1,6 @@
 package haxegon;
 	
 import haxegon.util.*;
-import js.Browser;
 import openfl.display.*;
 import openfl.geom.*;
 import openfl.events.*;
@@ -10,21 +9,6 @@ import openfl.text.*;
 import openfl.Assets;
 import openfl.Lib;
 import openfl.system.Capabilities;
-
-typedef Gfxdrawparams = {
-  @:optional var scale:Float;
-  @:optional var xscale:Float;
-  @:optional var yscale:Float;
-  @:optional var rotation:Float;
-  @:optional var xpivot:Float;
-  @:optional var ypivot:Float;
-	@:optional var alpha:Float;
-	@:optional var red:Float;
-	@:optional var green:Float;
-	@:optional var blue:Float;
-	@:optional var xalign:Int;
-	@:optional var yalign:Int;
-}
 
 class Gfx {
 	public static var LEFT:Int = -10000;
@@ -67,6 +51,72 @@ class Gfx {
 	}
 	public static function updatefps():Int {
 		return update_fps_max;
+	}
+	
+	//** Clear all rotations, scales and image colour changes */
+	private static function reset() {
+		transform = false;
+		imagerotate = 0; 
+		imagerotatexpivot = 0; imagerotateypivot = 0;
+		imagexscale = 1.0; imageyscale = 1.0;
+		imagescalexpivot = 0; imagescaleypivot = 0;
+		
+		coltransform = false;
+		imagealphamult = 1.0;	imageredmult = 1.0;	imagegreenmult = 1.0;	imagebluemult = 1.0;	
+	}
+	
+	/** Called when a transform takes place to check if any transforms are active */
+	private static function reset_ifclear() {
+	  if (imagerotate == 0) {
+		  if (imagexscale == 1.0) {
+				if (imageyscale == 1.0) {
+					transform = false;
+				}
+			}
+		}
+		
+		if (imagealphamult == 1.0) {
+		  if (imageredmult == 1.0 && imagegreenmult == 1.0 && imagebluemult == 1.0) {
+			  coltransform = false;	
+			}
+		}
+	}
+	
+	/** Rotates image drawing functions. */
+	public static function rotation(angle:Float, xpivot:Float = -15000, ypivot:Float = -15000) {
+	  imagerotate = angle;
+		imagerotatexpivot = xpivot;
+		imagerotateypivot = ypivot;
+		transform = true;
+		reset_ifclear();
+	}
+	
+	/** Scales image drawing functions. Optionally takes a second argument 
+	 * to scale X and Y seperately. */
+	public static function scale(xscale:Float, yscale:Float, xpivot:Float = -15000, ypivot:Float = -15000) {
+		imagexscale = xscale;
+		imageyscale = yscale;
+		imagescalexpivot = xpivot;
+		imagescaleypivot = ypivot;
+		
+		transform = true;
+		reset_ifclear();
+	}
+	
+	/** Set an alpha multipler for image drawing functions. */
+	public static function imagealpha(a:Float) {
+	  imagealphamult = a;
+		coltransform = true;
+		reset_ifclear();
+	}
+	
+	/** Set a red multipler for image drawing functions. */
+	public static function imagecolor(r:Float, g:Float, b:Float) {
+	  imageredmult = r;
+		imagegreenmult = g;
+		imagebluemult = b;
+		coltransform = true;
+		reset_ifclear();
 	}
 	
 	/** Change the tileset that the draw functions use. */
@@ -317,11 +367,23 @@ class Gfx {
 	public static function resizeimage(imagename:String, scale:Float) {
 		var oldindex:Int = imageindex.get(imagename);
 		var newbitmap:BitmapData = new BitmapData(Std.int(images[oldindex].width * scale), Std.int(images[oldindex].height * scale), true, 0);
+		var pixelalpha:Int;
+		var pixel:Int;
 		
-		shapematrix.identity();
-		shapematrix.scale(Math.floor(scale), Math.floor(scale));
-	  newbitmap.draw(images[oldindex], shapematrix);
-		shapematrix.identity();
+		images[oldindex].lock();
+		newbitmap.lock();
+		
+		for (j in 0 ... images[oldindex].height) {
+			for (i in 0 ... images[oldindex].width) {
+				pixel = images[oldindex].getPixel(i, j);
+				pixelalpha = images[oldindex].getPixel32(i, j) >> 24 & 0xFF;
+				settrect(Convert.toint(i * scale), Convert.toint(j * scale), Convert.toint(scale), Convert.toint(scale));
+				newbitmap.fillRect(trect, (pixelalpha << 24) + pixel);
+			}
+		}
+		
+		images[oldindex].unlock();
+		newbitmap.unlock();
 		
 		images[oldindex].dispose();
 		images[oldindex] = newbitmap;
@@ -464,94 +526,51 @@ class Gfx {
 	 * Parameters can be: rotation, scale, xscale, yscale, xpivot, ypivoy, alpha
 	 * x and y can be: Gfx.CENTER, Gfx.TOP, Gfx.BOTTOM, Gfx.LEFT, Gfx.RIGHT. 
 	 * */
-	public static function drawimage(x:Float, y:Float, imagename:String, ?parameters:Gfxdrawparams) {
-		if (skiprender && drawingtoscreen) return;
+	public static function drawimage(x:Float, y:Float, imagename:String) {
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
 		if (!imageindex.exists(imagename)) {
 			throw("ERROR: In drawimage, cannot find image \"" + imagename + "\".");
 			return;
 		}
 		imagenum = imageindex.get(imagename);
-		
-		tempxpivot = 0;
-		tempypivot = 0;
-		tempxscale = 1.0;
-		tempyscale = 1.0;
-		temprotate = 0;
-		tempred = 1.0; tempgreen = 1.0;	tempblue = 1.0;	tempalpha = 1.0;
-		alphact.redMultiplier = 1.0; alphact.greenMultiplier = 1.0;	alphact.blueMultiplier = 1.0;
-		alphact.alphaMultiplier = tempalpha;
-		changecolours = false;
-		tempxalign = x;	tempyalign = y;
-		
 		x = imagealignx(x); y = imagealigny(y);
-		if (parameters != null) {
-			if (parameters.xalign != null) {
-				if (parameters.xalign == CENTER) {
-					if (tempxalign != CENTER) {
-						x = x - Std.int(images[imagenum].width / 2);
-					}
-				}else if (parameters.xalign == BOTTOM || parameters.xalign == RIGHT) {
-					if (tempxalign != RIGHT) {
-						x = x - Std.int(images[imagenum].width);
-					}
-				}
+		
+		if (!transform && !coltransform) {
+			settpoint(Std.int(x), Std.int(y));
+			drawto.copyPixels(images[imagenum], images[imagenum].rect, tpoint);
+		}else {		
+			tempxalign = 0;	tempyalign = 0;
+			
+			shapematrix.identity();
+			
+			if (imagexscale != 1.0 || imageyscale != 1.0) {
+				if (imagescalexpivot != 0.0) tempxalign = imagealignonimagex(imagescalexpivot);
+				if (imagescaleypivot != 0.0) tempyalign = imagealignonimagey(imagescaleypivot);
+				shapematrix.translate( -tempxalign, -tempyalign);
+				shapematrix.scale(imagexscale, imageyscale);
+				shapematrix.translate( tempxalign, tempyalign);
 			}
 			
-			if (parameters.yalign != null) {
-				if (parameters.yalign == CENTER) {
-					if (tempyalign != CENTER) {
-						y = y - Std.int(images[imagenum].height / 2);
-					}
-				}else if (parameters.yalign == BOTTOM || parameters.yalign == RIGHT) {
-					if (tempyalign != BOTTOM) {
-						y = y - Std.int(images[imagenum].height);
-					}
-				}
+			if (imagerotate != 0) {
+				if (imagerotatexpivot != 0.0) tempxalign = imagealignonimagex(imagerotatexpivot);
+				if (imagerotateypivot != 0.0) tempyalign = imagealignonimagey(imagerotateypivot);
+				shapematrix.translate( -tempxalign, -tempyalign);
+				shapematrix.rotate((imagerotate * 3.1415) / 180);
+				shapematrix.translate( tempxalign, tempyalign);
 			}
 			
-			if (parameters.xpivot != null) tempxpivot = imagealignonimagex(parameters.xpivot);
-			if (parameters.ypivot != null) tempypivot = imagealignonimagey(parameters.ypivot); 
-			if (parameters.scale != null) {
-				tempxscale = parameters.scale;
-				tempyscale = parameters.scale;
-			}else{
-				if (parameters.xscale != null) tempxscale = parameters.xscale;
-				if (parameters.yscale != null) tempyscale = parameters.yscale;
+			shapematrix.translate(x, y);
+			if (coltransform) {
+				alphact.alphaMultiplier = imagealphamult;
+				alphact.redMultiplier = imageredmult;
+				alphact.greenMultiplier = imagegreenmult;
+				alphact.blueMultiplier = imagebluemult;
+				drawto.draw(images[imagenum], shapematrix, alphact);	
+			}else {
+				drawto.draw(images[imagenum], shapematrix);
 			}
-			if (parameters.rotation != null) temprotate = parameters.rotation;
-			if (parameters.alpha != null) {
-				tempalpha = parameters.alpha;
-				alphact.alphaMultiplier = tempalpha;
-				changecolours = true;
-			}
-			if (parameters.red != null) {
-				tempred = parameters.red;
-				alphact.redMultiplier = tempred;
-				changecolours = true;
-			}
-			if (parameters.green != null) {
-				tempgreen = parameters.green;
-				alphact.greenMultiplier = tempgreen;
-				changecolours = true;
-			}
-			if (parameters.blue != null) {
-				tempblue = parameters.blue;
-				alphact.blueMultiplier = tempblue;
-				changecolours = true;
-			}
+			shapematrix.identity();
 		}
-			
-		shapematrix.identity();
-		shapematrix.translate( -tempxpivot, -tempypivot);
-		if (temprotate != 0) shapematrix.rotate((temprotate * 3.1415) / 180);
-		if (tempxscale != 1.0 || tempyscale != 1.0) shapematrix.scale(tempxscale, tempyscale);
-		shapematrix.translate(x + tempxpivot, y + tempypivot);
-		if (changecolours) {
-		  drawto.draw(images[imagenum], shapematrix, alphact);	
-		}else {
-			drawto.draw(images[imagenum], shapematrix);
-		}
-		shapematrix.identity();
 	}
 	
 	#if !haxegonweb
@@ -631,8 +650,8 @@ class Gfx {
 	 * x and y can be: Gfx.CENTER, Gfx.TOP, Gfx.BOTTOM, Gfx.LEFT, Gfx.RIGHT. 
 	 * */
 	#if !haxegonweb
-	public static function drawtile(x:Float, y:Float, t:Int, ?parameters:Gfxdrawparams) {
-		if (skiprender && drawingtoscreen) return;
+	public static function drawtile(x:Float, y:Float, t:Int) {
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
 		if (currenttileset == -1) {
 			throw("ERROR: No tileset currently set. Use Gfx.changetileset(\"tileset name\") to set the current tileset.");
 			return;
@@ -647,89 +666,44 @@ class Gfx {
 			}
 		}
 		
-		tempxpivot = 0;
-		tempypivot = 0;
-		tempxscale = 1.0;
-		tempyscale = 1.0;
-		temprotate = 0;
-		tempred = 1.0; tempgreen = 1.0;	tempblue = 1.0;	tempalpha = 1.0;
-		alphact.redMultiplier = 1.0; alphact.greenMultiplier = 1.0;	alphact.blueMultiplier = 1.0;
-		alphact.alphaMultiplier = tempalpha;
-		changecolours = false;
-		tempxalign = x;	tempyalign = y;
-		
 		x = tilealignx(x); y = tilealigny(y);
-		if (parameters != null) {
-			if (parameters.xalign != null) {
-				if (parameters.xalign == CENTER) {
-					if (tempxalign != CENTER) {
-						x = x - Std.int(tilewidth() / 2);
-					}
-				}else if (parameters.xalign == BOTTOM || parameters.xalign == RIGHT) {
-					if (tempxalign != RIGHT) {
-						x = x - Std.int(tilewidth());
-					}
-				}
-			}
-			
-			if (parameters.yalign != null) {
-				if (parameters.yalign == CENTER) {
-					if (tempyalign != CENTER) {
-						y = y - Std.int(tileheight() / 2);
-					}
-				}else if (parameters.yalign == BOTTOM || parameters.yalign == RIGHT) {
-					if (tempyalign != BOTTOM) {
-						y = y - Std.int(tileheight());
-					}
-				}
-			}
-			
-			if (parameters.xpivot != null) tempxpivot = tilealignontilex(parameters.xpivot);
-			if (parameters.ypivot != null) tempypivot = tilealignontiley(parameters.ypivot); 
-			
-			if (parameters.scale != null) {
-				tempxscale = parameters.scale;
-				tempyscale = parameters.scale;
-			}else{
-				if (parameters.xscale != null) tempxscale = parameters.xscale;
-				if (parameters.yscale != null) tempyscale = parameters.yscale;
-			}
-			
-			if (parameters.rotation != null) temprotate = parameters.rotation;
-			if (parameters.alpha != null) {
-				tempalpha = parameters.alpha;
-				alphact.alphaMultiplier = tempalpha;
-				changecolours = true;
-			}
-			if (parameters.red != null) {
-				tempred = parameters.red;
-				alphact.redMultiplier = tempred;
-				changecolours = true;
-			}
-			if (parameters.green != null) {
-				tempgreen = parameters.green;
-				alphact.greenMultiplier = tempgreen;
-				changecolours = true;
-			}
-			if (parameters.blue != null) {
-				tempblue = parameters.blue;
-				alphact.blueMultiplier = tempblue;
-				changecolours = true;
-			}
-		}
 		
-		shapematrix.identity();
-		shapematrix.translate( -tempxpivot, -tempypivot);
-		if (temprotate != 0) shapematrix.rotate((temprotate * 3.1415) / 180);
-		if (tempxscale != 1.0 || tempyscale != 1.0) shapematrix.scale(tempxscale, tempyscale);
-		shapematrix.translate(tempxpivot, tempypivot);
-		shapematrix.translate(x, y);
-		if (changecolours) {
-		  drawto.draw(tiles[currenttileset].tiles[t], shapematrix, alphact);
-		}else {
-		  drawto.draw(tiles[currenttileset].tiles[t], shapematrix);
+		if (!transform && !coltransform) {
+			settpoint(Std.int(x), Std.int(y));
+			drawto.copyPixels(tiles[currenttileset].tiles[t], tiles[currenttileset].tiles[t].rect, tpoint);
+		}else {		
+			tempxalign = 0;	tempyalign = 0;
+			
+			shapematrix.identity();
+			
+			if (imagexscale != 1.0 || imageyscale != 1.0) {
+				if (imagescalexpivot != 0.0) tempxalign = tilealignontilex(imagescalexpivot);
+				if (imagescaleypivot != 0.0) tempyalign = tilealignontiley(imagescaleypivot);
+				shapematrix.translate( -tempxalign, -tempyalign);
+				shapematrix.scale(imagexscale, imageyscale);
+				shapematrix.translate( tempxalign, tempyalign);
+			}
+			
+			if (imagerotate != 0) {
+				if (imagerotatexpivot != 0.0) tempxalign = tilealignontilex(imagerotatexpivot);
+				if (imagerotateypivot != 0.0) tempyalign = tilealignontiley(imagerotateypivot);
+				shapematrix.translate( -tempxalign, -tempyalign);
+				shapematrix.rotate((imagerotate * 3.1415) / 180);
+				shapematrix.translate( tempxalign, tempyalign);
+			}
+			
+			shapematrix.translate(x, y);
+			if (coltransform) {
+				alphact.alphaMultiplier = imagealphamult;
+				alphact.redMultiplier = imageredmult;
+				alphact.greenMultiplier = imagegreenmult;
+				alphact.blueMultiplier = imagebluemult;
+				drawto.draw(tiles[currenttileset].tiles[t], shapematrix, alphact);	
+			}else {
+				drawto.draw(tiles[currenttileset].tiles[t], shapematrix);
+			}
+			shapematrix.identity();
 		}
-		shapematrix.identity();
 	}
 	
 	/** Returns the current animation frame of the current tileset. */
@@ -753,7 +727,7 @@ class Gfx {
 	}
 	
 	public static function drawanimation(x:Float, y:Float, animationname:String, ?parameters:Gfxdrawparams) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
 		oldtileset = currenttilesetname;
 		if (!animationindex.exists(animationname)) {
 			throw("ERROR: No animated named \"" +animationname+"\" is defined. Define one first using Gfx.defineanimation!");
@@ -870,10 +844,50 @@ class Gfx {
 			}
 		}
 	}
+	
+	public static function drawbresenhamline(x0:Int, y0:Int, x1:Int, y1:Int, col:Int, alpha:Float):Void {
+		var startx1:Int = x1;
+		var starty1:Int = y1;
+		var swapXY = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+		var tmp:Int;
+		
+		if (swapXY) {
+			// swap x and y
+			tmp = x0; x0 = y0; y0 = tmp; // swap x0 and y0
+			tmp = x1; x1 = y1; y1 = tmp; // swap x1 and y1
+		}
+		
+		if(x0 > x1) {
+			// make sure x0 < x1
+			tmp = x0; x0 = x1; x1 = tmp; // swap x0 and x1
+			tmp = y0; y0 = y1; y1 = tmp; // swap y0 and y1
+		}
+		
+		var deltax = x1 - x0;
+		var deltay = Std.int( Math.abs(y1 - y0));
+		var error = Std.int( deltax / 2 );
+		var y = y0;
+		var ystep = if ( y0 < y1 ) 1 else -1;
+		
+			// Y / X
+		for (x in x0 ... x1 + 1 ) {	
+			if (swapXY) {
+				setpixel(y, x, col, alpha);
+			}else {
+				setpixel(x, y, col, alpha);
+			}
+			error -= deltay;
+			if ( error < 0 ) {
+				y = y + ystep;
+				error = error + deltax;
+			}
+		}
+	}
 	#end
 	
 	public static function drawline(_x1:Float, _y1:Float, _x2:Float, _y2:Float, col:Int, alpha:Float = 1.0) {
-    if (skiprender && drawingtoscreen) return;
+    if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
 		if (_x1 == _x2) {
 			if (_y2 > _y1) {
@@ -888,11 +902,7 @@ class Gfx {
 				fillbox(_x2, _y1 - linethickness + 1, _x1 - _x2, 1 + linethickness - 1, col, alpha);
 			}
 		}else{
-			bresenhamline(Std.int(_x1), Std.int(_y1), Std.int(_x2), Std.int(_y2), 0);
-			
-			for (i in 0 ... bresx1.length) {
-				setpixel(bresx1[i], bresy1[i], col, alpha);
-			}
+			drawbresenhamline(Std.int(_x1), Std.int(_y1), Std.int(_x2), Std.int(_y2), col, alpha);
 		}
 		#else
     tempshape.graphics.clear();
@@ -904,7 +914,8 @@ class Gfx {
 	}
 
 	public static function drawhexagon(x:Float, y:Float, radius:Float, angle:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
 		#if haxegonweb
 		temprotate = ((Math.PI * 2) / 6);
 		
@@ -941,7 +952,8 @@ class Gfx {
 	}
 	
 	public static function fillhexagon(x:Float, y:Float, radius:Float, angle:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
 		temprotate = ((Math.PI * 2) / 6);
 		
@@ -978,7 +990,8 @@ class Gfx {
 	}
 	
 	public static function drawcircle(x:Float, y:Float, radius:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
 		x = fastFloor(x);
 		y = fastFloor(y);
@@ -1019,7 +1032,8 @@ class Gfx {
 	private static var fillcirclepoints:Array<Bool> = [];
 	#end
 	public static function fillcircle(x:Float, y:Float, radius:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
 		x = fastFloor(x);
 		y = fastFloor(y);
@@ -1070,7 +1084,8 @@ class Gfx {
 	}
 	
 	public static function drawtri(x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
 		drawline(x1, y1, x2, y2, col);
 		drawline(x2, y2, x3, y3, col);
@@ -1110,7 +1125,8 @@ class Gfx {
 	
 	#end
 	public static function filltri(x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
 		//Sort the points from y value highest to lowest
 		if (y1 < y2 && y1 < y3) {
@@ -1185,7 +1201,8 @@ class Gfx {
 	}
 
 	public static function drawbox(x:Float, y:Float, width:Float, height:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		if (width < 0) {
 			width = -width;
 			x = x - width;
@@ -1234,38 +1251,35 @@ class Gfx {
 	}
 	
 	public static function clearscreen(col:Int = 0x000000) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
 		drawto.fillRect(drawto.rect, (0xFF << 24) + col);
 	}
 	
 	public static function getpixel(x:Float, y:Float):Int {
-		return drawto.getPixel(Std.int(x), Std.int(y));
-	}
-	
-	public static function ispixeltransparent(x:Float, y:Float):Int {
-		Webdebug.log("Checking pixel transparency at point " + x + ", " + y);
-		var pixel:Int = drawto.getPixel32(Std.int(x), Std.int(y));
-		Webdebug.log(Convert.tostring(pixel));
+		var pixelalpha:Int = drawto.getPixel32(Std.int(x), Std.int(y)) >> 24 & 0xFF;
+		var pixel:Int = drawto.getPixel(Std.int(x), Std.int(y));
 		
-		var a:Int = pixel >> 24 & 0xFF;
-		var r:Int = pixel >> 16 & 0xFF;
-		var g:Int = pixel >> 8  & 0xFF;
-		var b:Int = pixel       & 0xFF;
-		
-		Webdebug.log(Convert.tostring(a), Convert.tostring(r), Convert.tostring(g), Convert.tostring(b));
-		//return (drawto.getPixel32(Std.int(x), Std.int(y))	>> 24 & 0xFF) > 0?false:true;
-		return a;
-	}
-	
-	public static function setpixeltransparent(x:Float, y:Float) {
-		settrect(Std.int(x)-1, Std.int(y)-1, 3, 3);
-		drawto.fillRect(trect, 0);
+		if (pixelalpha == 0) return Col.TRANSPARENT;
+		return pixel;
 	}
 	
 	public static function setpixel(x:Float, y:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
-		if (alpha < 1) {
+		if (col == Col.TRANSPARENT) {
+			if (_linethickness == 1) {
+				settpoint(fastFloor(x), fastFloor(y));
+				drawto.copyPixels(transparentpixel, transparentpixel.rect, tpoint);
+			}else {
+				for (j in Std.int(y - _linethickness + 1) ... Std.int(_linethickness + _linethickness - 2)) {
+					for (i in Std.int(x - _linethickness + 1) ... Std.int(_linethickness + _linethickness - 2)) {
+						settpoint(fastFloor(i), fastFloor(j));
+						drawto.copyPixels(transparentpixel, transparentpixel.rect, tpoint);
+					}
+				}
+			}
+		}else	if (alpha < 1) {
 			if (_linethickness == 1) {
 				//drawto.setPixel32(Std.int(x), Std.int(y), (Std.int(alpha * 256) << 24) + col);
 				settrect(Std.int(x), Std.int(y), 1, 1);
@@ -1290,10 +1304,18 @@ class Gfx {
 	}
 
 	public static function fillbox(x:Float, y:Float, width:Float, height:Float, col:Int, alpha:Float = 1.0) {
-		if (skiprender && drawingtoscreen) return;
+		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
+		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
-		if(alpha == 1.0){
-			settrect(x, y, width, height);
+		if (col == Col.TRANSPARENT) {
+			for (j in Std.int(y) ... Std.int(y + height)) {
+				for (i in Std.int(x) ... Std.int(x + width)) {
+					settpoint(fastFloor(i), fastFloor(j));
+					drawto.copyPixels(transparentpixel, transparentpixel.rect, tpoint);
+				}
+			}
+		}else	if(alpha == 1.0){
+			settrect(fastFloor(x), fastFloor(y), fastFloor(width), fastFloor(height));
 			drawto.fillRect(trect, (0xFF << 24) + col);
 		}else {
 			tempshape.graphics.clear();
@@ -1476,7 +1498,9 @@ class Gfx {
 	private static function init(stage:Stage) {
 		if (initrun) gfxstage = stage;
 		clearscreeneachframe = true;
-		linethickness=1;
+		reset();
+		linethickness = 1;
+		transparentpixel = new BitmapData(1, 1, true, 0);
 	}	
 	
 	/** Called from resizescreen(). Sets up all our graphics buffers. */
@@ -1543,24 +1567,30 @@ class Gfx {
 	private static var tbuffer:BitmapData;
 	private static var imageindex:Map<String, Int> = new Map<String, Int>();
 	
-	private static var temprotate:Float;
-	private static var tempxscale:Float;
-	private static var tempyscale:Float;
-	private static var tempxpivot:Float;
-	private static var tempypivot:Float;
-	private static var tempalpha:Float;
-	private static var tempred:Float;
-	private static var tempgreen:Float;
-	private static var tempblue:Float;
+	private static var transform:Bool;
+	private static var coltransform:Bool;
+	private static var imagerotate:Float;
+	private static var imagerotatexpivot:Float;
+	private static var imagerotateypivot:Float;
+	private static var imagexscale:Float;
+	private static var imageyscale:Float;
+	private static var imagescalexpivot:Float;
+	private static var imagescaleypivot:Float;
+	private static var imagealphamult:Float;
+	private static var imageredmult:Float;
+	private static var imagegreenmult:Float;
+	private static var imagebluemult:Float;
 	private static var tempframe:Int;
 	private static var tempxalign:Float;
 	private static var tempyalign:Float;
+	private static var temprotate:Float;
 	private static var changecolours:Bool;
 	private static var oldtileset:String;
 	private static var tx:Float;
 	private static var ty:Float;
 	private static var tx2:Float;
   private static var ty2:Float;
+	private static var transparentpixel:BitmapData;
 	
 	private static var _linethickness:Float;
 	

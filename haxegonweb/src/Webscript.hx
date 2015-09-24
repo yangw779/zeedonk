@@ -31,6 +31,7 @@ class Webscript {
 	
 	public static var donkeyhop:Int = 0;
 	public static var zebrahop:Int = 0;
+	public static var corecontrol:Core;
 	
 	public static function init() {
 		scriptloaded = false;
@@ -113,17 +114,6 @@ class Webscript {
 	
 	public static var	reloaddelay:Int = 0;
 	
-	public static function resetengine() {
-		resetGlobalVariables();
-		
-		reset = true;
-		waitforreset = true;
-	}
-	
-	public static var reset:Bool = false;
-	public static var waitforreset:Bool = false;
-	public static var script_waitforreset:Bool = false;
-	
 	public static function update() {
 		#if flash
 		  if (Input.justpressed(Key.R)) {
@@ -139,7 +129,7 @@ class Webscript {
 		#else
 		if (errorinscript) {
 		#end
-			Text.setfont(Webfont.DEFAULT, 1);
+		  Text.setfont(Webfont.DEFAULT, 1);
 			Gfx.clearscreen(Gfx.rgb(32, 0, 0));
 			Text.display(Text.CENTER, Text.CENTER, "ERROR! ERROR! ERROR!", Col.RED);
 		}else if (loadwhenready) {
@@ -147,12 +137,7 @@ class Webscript {
 	  		loadwhenready = false;	
 				loadscript(myscript);
 			}
-	  }else if (script_waitforreset) {
-			if (!waitforreset) {
-				scriptfound_enginereset();
-				script_waitforreset = false;
-			}
-		}else if (scriptloaded) {
+	  }else if (scriptloaded) {
 			if (runscript && !pausescript) {
 				try {
 					updatefunction();
@@ -163,102 +148,72 @@ class Webscript {
 				Game.time++;
 			}	
 		}else {
-			counter += 1;
-			if (counter % 120 == 0) donkeyhop = 10;
-			if (counter % 120 == 60) zebrahop = 10;
-			
-			if (zebrahop > 0) zebrahop--;
-			if (donkeyhop > 0) donkeyhop--;
-			/*
-			
-			for (i in 0 ... 16) {
-				Gfx.fillbox(0, (i * 10) - ((counter/20) % 10) * 2, Gfx.screenwidth, 10, i%2==0?Col.BLACK:Col.WHITE);
-			}
-			
-			Gfx.fillbox(10, 10, Gfx.screenwidth - 20, Gfx.screenheight - 20, Col.DARKBROWN);
-			*/
-			/*
-			counter += 10;
-			Gfx.clearscreen(Col.GRAY);
-			var gap:Int = Std.int((Gfx.screenheightmid / 5));
-			for (i in 0 ... 5) {
-				if (i % 2 == 1) {
-					Gfx.fillbox(0, Gfx.screenheightmid + (i * gap), Gfx.screenwidth, gap, Col.WHITE);
+			if(Game.editor()){
+				counter += 1;
+				if (counter % 120 == 0) donkeyhop = 10;
+				if (counter % 120 == 60) zebrahop = 10;
+				
+				if (zebrahop > 0) zebrahop--;
+				if (donkeyhop > 0) donkeyhop--;
+				
+				
+				Gfx.clearscreen(Col.LIGHTBLUE);
+				Gfx.fillbox(0, Gfx.screenheightmid, Gfx.screenwidth, Gfx.screenheightmid, Col.GREEN);
+				
+				Gfx.rotation(zebrahop, Gfx.RIGHT, Gfx.TOP);
+				if (zebrahop > 5) {
+					Gfx.drawimage(Gfx.CENTER + 80, Gfx.CENTER - 15, "__library_donkey");
 				}else {
-					Gfx.fillbox(0, Gfx.screenheightmid + (i * gap), Gfx.screenwidth, gap, Col.BLACK);
+					Gfx.drawimage(Gfx.CENTER + 80, Gfx.CENTER - 5 - zebrahop * 2, "__library_donkey");
 				}
+				
+				Gfx.rotation(-donkeyhop, Gfx.LEFT, Gfx.TOP);
+				if (donkeyhop > 5) {
+					Gfx.drawimage(Gfx.CENTER - 80, Gfx.CENTER - 15, "__library_zebra");
+				}else{
+					Gfx.drawimage(Gfx.CENTER - 80, Gfx.CENTER - 5 - donkeyhop * 2, "__library_zebra");
+				}
+				Gfx.rotation(0);
+				
+				if (counter % 120 < 60) {
+					Gfx.fillcircle(Gfx.screenwidthmid - 60 + ((counter % 60) * 120) / 60, Gfx.screenheightmid - 30 - 30 * Math.sin((counter % 60) * Math.PI / 60), 8, Gfx.hsl(counter, 0.75, 0.5));
+				}else {
+					Gfx.fillcircle(Gfx.screenwidthmid + 60 - ((counter % 60) * 120) / 60, Gfx.screenheightmid - 30 - 30 * Math.sin((counter % 60) * Math.PI / 60), 8, Gfx.hsl(counter, 0.75, 0.5));
+				}
+				
+				Text.setfont(Webfont.PRESSSTART, 1);
+				Text.display(Text.CENTER, Text.CENTER + 50, "WAITING FOR SCRIPTFILE", Col.WHITE);
+				Text.setfont(Webfont.DEFAULT, 1);
+				Text.display(Text.CENTER, Gfx.screenheight - Text.height() - 10, "zeedonk beta v0.7", Col.WHITE);
+			}else {
+				Gfx.clearscreen(Col.BLACK);
+				
+				Text.display(Text.CENTER, Gfx.screenheight - Text.height() - 24, "zeedonk beta v0.7", Col.GRAY);
+				Text.display(Text.CENTER, Gfx.screenheight - Text.height() - 14, "loading script...", Col.GRAY);
 			}
-			
-			
-			Text.display(Gfx.screenwidth - 6, Gfx.screenheight - Text.height()-2, "zeedonk alpha v0.5", Col.WHITE, { align:Text.RIGHT } );
-			
-			var msg:String = "WAITING FOR SCRIPTFILE...";
-			var startpos:Float = Gfx.screenwidthmid - Text.len(msg) / 2;
-			var currentpos:Float = 0;
-			for (i in 0 ... msg.length) {
-				if (S.mid(msg, i, 1) != "_") {
-					Text.display(startpos + currentpos, Gfx.screenheightmid - 35 + Math.sin((((i*5)+counter)%360) * Math.PI * 2 / 360)*5, S.mid(msg, i, 1), Col.WHITE);
-				}
-				currentpos += Text.len(S.mid(msg, i, 1));
-			}*/
-			
-			Gfx.clearscreen(Col.LIGHTBLUE);
-			Gfx.fillbox(0, Gfx.screenheightmid, Gfx.screenwidth, Gfx.screenheightmid, Col.GREEN);
-			Gfx.drawimage(Gfx.CENTER + 80, Gfx.CENTER-5 - zebrahop%5, "__library_donkey");
-			Gfx.drawimage(Gfx.CENTER - 80, Gfx.CENTER-5 - donkeyhop%5, "__library_zebra");
-			Text.display(Text.CENTER, Text.CENTER + 40, "WAITING FOR SCRIPTFILE", Col.WHITE);
-			Text.display(Text.CENTER, Gfx.screenheight - Text.height()-14, "zeedonk alpha v0.5", Col.WHITE);
 		}
-		/*
-		Gfx.clearscreen(Col.DARKBLUE);
-		
-		Text.setfont(Webfont.THIN, 1);
-		
-		Text.display(1, 1, "the quick brown, fox jumped. Over");
-		Text.display(1, 10, "the lazy dog! Oh no!");
-		
-		Text.display(1, 21, "The quick brown fox jumped over".toUpperCase());
-		Text.display(1, 30, "the lazy dog?".toUpperCase());
-		
-		Text.display(1, 50, "1234567890,".toUpperCase());
-		Text.display(1, 60, "a\"b\\c/d#e£f$g%h^i&j*k(l)m{o}A<B>C_D".toUpperCase());
-		
-		Text.display(1, 80, "What does that say? I can't read it!");
-		Text.display(1, 95, "It reads: 'stupid font`");
-		*/
-		/*
-		Text.changesize(2);
-		Text.display(Text.CENTER,1,"TinyBox");
-		Text.changesize(1);
-		var i=0;
-		Text.display(3,30+13*(i++),"Shortcuts:");
-		Text.display(3,30+13*(i++),"~ Arrow keys or wsad,to scroll/set note length.");
-		Text.display(3,30+13*(i++),"~ +/- or q and e to control volume.");
-		Text.display(3,30+13*(i++),"~ Right click on instruments to randomize,");
-		Text.display(3,30+13*(i++),"~ Or press numbers when hovering to enter.");
-		Text.display(3,30+13*(i++),"~ You can press c/v to copy/paste sequences.");
-		Text.display(3,30+13*(i++),"~ Right click notes/sequences to remove.");
-		Text.display(3,30+13*(i++),"~ Z to undo.");
-		*/
 		
 		if (Gfx.showfps) {
 			oldfont = Text.currentfont;
 			oldfontsize = Text.currentsize;
 			Text.setfont("pixel", 1);
 			if (Gfx.fps() > -1) {
-				Text.display(Gfx.screenwidth - 4, 1, "FPS: " + Gfx.fps(), Col.YELLOW, { align: Text.RIGHT } );
+				Text.align(Text.RIGHT);
+				Text.display(Gfx.screenwidth - 4, 1, "FPS: " + Gfx.fps(), Col.YELLOW);
 			}
 			//if (Gfx.updatefps() > -1) {
-			//	Text.display(Gfx.screenwidth - 4, 7, "UPDATE FPS: " + Gfx.updatefps(), Col.YELLOW, { align: Text.RIGHT } );
+			//  Text.align(Text.RIGHT);
+			//	Text.display(Gfx.screenwidth - 4, 7, "UPDATE FPS: " + Gfx.updatefps(), Col.YELLOW);
 			//}
 			
+			Text.align(Text.LEFT);
 			Text.setfont(oldfont, oldfontsize);
 		}
 	}
 	public static var name:String;
 	private static var counter:Int = 0;
 	private static var oldfont:String = "";
-	private static var oldfontsize:Int = 0;
+	private static var oldfontsize:Float = 0;
 
 	private static function resetGlobalVariables(){
 		MusicEngine.stopmusic();
@@ -277,17 +232,14 @@ class Webscript {
 			skipnextloadscript = false;
 		}else{
 			myscript = script;
-			resetGlobalVariables();
 			scriptfound();
 		}
 	}
 	
 	public static function scriptfound() {
-		resetengine();
-		script_waitforreset = true;
-	}
+		resetGlobalVariables();
+		corecontrol.reset();
 		
-	public static function scriptfound_enginereset() {
 		scriptloaded = true;
 		errorinscript = false;
 		pausescript = false;
@@ -324,6 +276,7 @@ class Webscript {
 		Text.cleartextcache();
 		Gfx.clearscreeneachframe = true;
 		
+		Gfx.skiprender = false;
 		runscript = true;
 		try{
 			parsedscript = parser.parseString(myscript);

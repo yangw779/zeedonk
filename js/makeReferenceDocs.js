@@ -13,6 +13,8 @@ haxe = require('./codemirror/haxe.js');
 
 var modules = [];
 var enums = [];
+haxeHintArray = haxeHintArray.concat(haxeMethodArray);
+
 for (var i=0;i<haxeHintArray.length;i++){
 	var r = haxeHintArray[i];
 	if (r.length<3){
@@ -69,7 +71,7 @@ function genReferencePage(moduleName){
 	"<html>"+
 	"<head>"+
 	' <meta charset="utf-8">'+
-	"	<title>Zeedonk Reference " +moduleName+"</title>"+
+	"	<title>Zeedonk Reference " +"Getting Started"+"</title>"+
 	'<link rel="shortcut icon" href="../images/icon256.png" />'+
 	"<link href='https://fonts.googleapis.com/css?family=Lora:400,700' rel='stylesheet' type='text/css'>"+
 	'<link rel="stylesheet" type="text/css" href="style.css">'+
@@ -126,6 +128,7 @@ function genReferencePage(moduleName){
 		}
 		var tag = r[2];
 		var fn = r[0]+r[1];
+
 		var doc =(r.length>3)?r[3]:"";
 		var dotIndex=fn.indexOf(".");
 		var preface=dotIndex>=0?fn.substring(0,dotIndex):tag;
@@ -133,6 +136,15 @@ function genReferencePage(moduleName){
 		if (fn.indexOf(moduleName)!==0){
 			continue;
 		}
+
+		if (tag.substr(0,2)==="M_"){
+			if (moduleName==="String"){
+				fn = '"abc"'+"."+postface;
+			} else if (moduleName==="Array"){
+				fn = '[1,2,3]'+"."+postface;
+			}
+		}
+
 		counter++;
 		var row = '<tr class="' +  ((counter%2==0)?"even":"odd")+'">';
 		if (preface!=oldPreface&&pageContents.length>0){
@@ -142,14 +154,22 @@ function genReferencePage(moduleName){
 		var docString="";
 		var cs = "";
 		if (enums.indexOf(preface)===-1){
-			var samplePath = "../demo/doc/"+r[0]+".hx";
-			if (!fs.existsSync(samplePath)){
-				fs.writeFileSync(samplePath,"");		
-			}
-			cs = fs.readFileSync(samplePath);
-			if (cs.length>0){
-				var formatted = highlight(cs+"");
-				docString="<div class=\"codeInsert\">"+formatted+"<a class=\"editLink\" href=\"../editor.html?demo=doc/"+r[0]+"\">✎</a></div>";
+			var suffixes=["",".2",".3",".4",".5",".6"];
+			for (var j=0;j<suffixes.length;j++){
+				var suffix=suffixes[j];
+				var samplePath = "../demo/doc/"+r[0]+suffix+".hx";
+				if (!fs.existsSync(samplePath)){
+					if (suffix.length==0){
+						fs.writeFileSync(samplePath,"");		
+					} else {
+						continue;
+					}
+				}
+				cs = fs.readFileSync(samplePath);
+				if (cs.length>0){
+					var formatted = highlight(cs+"");
+					docString+="<div class=\"codeInsert\">"+formatted+"<a class=\"editLink\" href=\"../editor.html?demo=doc/"+r[0]+suffix+"\">✎</a></div>";
+				}
 			}
 		}
 		//row+=<td>"+tag+"</td>;
