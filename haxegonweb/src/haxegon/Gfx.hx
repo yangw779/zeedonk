@@ -35,6 +35,11 @@ class Gfx {
 	/** Create a screen with a given width, height and scale. Also inits Text. */
 	public static function resizescreen(width:Float, height:Float, scale:Int = 1) {
 		initgfx(Std.int(width), Std.int(height), scale);
+		#if haxegonweb
+		#if (js || html5)
+			onResize(null);
+		#end
+		#end
 		Text.init(gfxstage);
 		showfps = false;
 		gfxstage.addChild(screen);
@@ -956,6 +961,7 @@ class Gfx {
 		#if haxegonweb alpha = 1.0; #end
 		#if haxegonweb
 		temprotate = ((Math.PI * 2) / 6);
+		if (angle == 0) angle = Math.PI;
 		
 		tx = (Math.cos(angle) * radius) + x;
 		ty = (Math.sin(angle) * radius) + y;
@@ -1272,12 +1278,7 @@ class Gfx {
 				settpoint(fastFloor(x), fastFloor(y));
 				drawto.copyPixels(transparentpixel, transparentpixel.rect, tpoint);
 			}else {
-				for (j in Std.int(y - _linethickness + 1) ... Std.int(_linethickness + _linethickness - 2)) {
-					for (i in Std.int(x - _linethickness + 1) ... Std.int(_linethickness + _linethickness - 2)) {
-						settpoint(fastFloor(i), fastFloor(j));
-						drawto.copyPixels(transparentpixel, transparentpixel.rect, tpoint);
-					}
-				}
+				fillbox(x - _linethickness + 1, y - _linethickness + 1, _linethickness + _linethickness - 2, _linethickness + _linethickness - 2, col);
 			}
 		}else	if (alpha < 1) {
 			if (_linethickness == 1) {
@@ -1314,7 +1315,7 @@ class Gfx {
 					drawto.copyPixels(transparentpixel, transparentpixel.rect, tpoint);
 				}
 			}
-		}else	if(alpha == 1.0){
+		}else	if (alpha == 1.0) {
 			settrect(fastFloor(x), fastFloor(y), fastFloor(width), fastFloor(height));
 			drawto.fillRect(trect, (0xFF << 24) + col);
 		}else {
@@ -1484,8 +1485,8 @@ class Gfx {
 			screen.height = screenheight * screenscale;
 			screen.x = 0.0;
 			screen.y = 0.0;
-			gfxstage.scaleMode = StageScaleMode.NO_SCALE;
-			gfxstage.align = StageAlign.TOP_LEFT;
+			gfxstage.scaleMode = StageScaleMode.SHOW_ALL;
+			//gfxstage.align = StageAlign.TOP_LEFT;
 			#if haxegonweb
 			gfxstage.quality = StageQuality.LOW;
 			#else
@@ -1496,12 +1497,51 @@ class Gfx {
 	
 	/** Just gives Gfx access to the stage. */
 	private static function init(stage:Stage) {
-		if (initrun) gfxstage = stage;
+		if (initrun) {
+			gfxstage = stage;
+			
+			#if (js || html5)
+			onResize(null);
+			stage.addEventListener(Event.RESIZE, onResize);
+			#end
+		}
 		clearscreeneachframe = true;
 		reset();
 		linethickness = 1;
 		transparentpixel = new BitmapData(1, 1, true, 0);
 	}	
+	
+	#if html5
+	private static function onResize(e:Event):Void {
+		//trace(gfxstage.stageWidth, gfxstage.stageHeight);
+		//Window.devicePixelratio
+		var scaleX:Float;
+		var scaleY:Float;
+		
+		if (Game.editor()) {
+			scaleX = gfxstage.stageWidth / screenwidth;
+			scaleY = gfxstage.stageHeight / screenheight;
+			var jsscaleeditor:Float = Math.min(scaleX, scaleY);
+			
+			gfxstage.scaleX = jsscaleeditor;
+			gfxstage.scaleY = jsscaleeditor;
+			
+			gfxstage.x = (gfxstage.stageWidth - screenwidth * jsscaleeditor) / 2;
+			gfxstage.y = (gfxstage.stageHeight - screenheight * jsscaleeditor) / 2;
+		}else {
+		  scaleX = Math.floor(gfxstage.stageWidth / screenwidth);
+			scaleY = Math.floor(gfxstage.stageHeight / screenheight);			
+			
+			var jsscale:Int = Convert.toint(Math.min(scaleX, scaleY));
+			
+			gfxstage.scaleX = jsscale;
+			gfxstage.scaleY = jsscale;
+			
+			gfxstage.x = (gfxstage.stageWidth - screenwidth * jsscale) / 2;
+			gfxstage.y = (gfxstage.stageHeight - screenheight * jsscale) / 2;
+		}
+	}
+	#end
 	
 	/** Called from resizescreen(). Sets up all our graphics buffers. */
 	private static function initgfx(width:Int, height:Int, scale:Int) {

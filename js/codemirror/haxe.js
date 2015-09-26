@@ -73,7 +73,7 @@ CodeMirror.defineMode("haxe", function(config, parserConfig) {
       return ret(ch);
     } else if (ch == "0" && stream.eat(/x/i)) {
       stream.eatWhile(/[\da-f]/i);
-      return ret("number", "number");
+      return ret("number", "hexnumber");
     } else if (/\d/.test(ch) || ch == "-" && stream.eat(/\d/)) {
        stream.match(/^\d*(?:\.\d*(?!\.))?(?:[eE][+\-]?\d+)?/);
        return ret("number", "number");
@@ -106,7 +106,11 @@ CodeMirror.defineMode("haxe", function(config, parserConfig) {
       if(/[A-Z]/.test(ch)) {
         stream.eatWhile(/[\w_<>]/);
         word = stream.current();
-        return ret("type", "variable-3", word);
+        if (colorNames.indexOf(word)>=0){
+          return ret("type","colConst-"+word,word);
+        } else {
+          return ret("type", "variable-3", word);
+        }
       } else {
         stream.eatWhile(/[\w_]/);
         var word = stream.current(), known = keywords.propertyIsEnumerable(word) && keywords[word];
@@ -115,6 +119,7 @@ CodeMirror.defineMode("haxe", function(config, parserConfig) {
       }
     }
   }
+  var colorNames= ["BLACK", "GREY", "GRAY", "WHITE", "RED", "PINK", "DARKBROWN", "BROWN", "ORANGE", "YELLOW", "DARKGREEN", "GREEN", "LIGHTGREEN", "NIGHTBLUE", "DARKBLUE", "BLUE", "LIGHTBLUE", "MAGENTA", "TRANSPARENT"];
 
   function haxeTokenString(quote) {
     return function(stream, state) {
