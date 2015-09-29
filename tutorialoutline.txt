@@ -36,7 +36,7 @@ For loops:
 -
 
 for (i in 0...100)
-	trace((100-i)+bottles of beer on the wall);
+	trace((100-i)+"bottles of beer on the wall");
 
 -
 
@@ -94,12 +94,12 @@ Here's how you display text on-screen:
 
 -
 
-function update()	{
-    trace("Hello, sailor!");
+function update() {
+    Text.display(0,0,"Hello, sailor!");
 }
 
 -
 
-For more, browse the examples via the examples dropdown in the <a class="tutoriallink" href="editor.html">editor</a>, or browse the many examples in the <a class="tutoriallink" href="index.html">library reference</a>.
+For more, browse the examples via the examples dropdown in the <a class="tutoriallink" href="../editor.html">editor</a>, or browse the many examples in the <a class="tutoriallink" href="index.html">library reference</a>.
 
 Good luck!

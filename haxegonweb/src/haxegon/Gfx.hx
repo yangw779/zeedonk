@@ -382,7 +382,7 @@ class Gfx {
 			for (i in 0 ... images[oldindex].width) {
 				pixel = images[oldindex].getPixel(i, j);
 				pixelalpha = images[oldindex].getPixel32(i, j) >> 24 & 0xFF;
-				settrect(Convert.toint(i * scale), Convert.toint(j * scale), Convert.toint(scale), Convert.toint(scale));
+				settrect(Math.ceil(i * scale), Math.ceil(j * scale), Math.ceil(scale), Math.ceil(scale));
 				newbitmap.fillRect(trect, (pixelalpha << 24) + pixel);
 			}
 		}
@@ -618,7 +618,7 @@ class Gfx {
 		images[imagenum].copyPixels(backbuffer, trect, tl);
 	}
 	
-	public static function grabimagefromimage(imagename:String, imagetocopyfrom:String, x:Float, y:Float) {
+	public static function grabimagefromimage(imagename:String, imagetocopyfrom:String, x:Float, y:Float, w:Float = 0, h:Float = 0) {
 		if (!imageindex.exists(imagename)) {
 			throw("ERROR: In grabimagefromimage, \"" + imagename + "\" does not exist. You need to create an image label first before using this function.");
 			return;
@@ -630,7 +630,11 @@ class Gfx {
 		}
 		var imagenumfrom:Int = imageindex.get(imagetocopyfrom);
 		
-		settrect(x, y, images[imagenum].width, images[imagenum].height);
+		if(w == 0 && h == 0){
+			settrect(x, y, images[imagenum].width, images[imagenum].height);
+		}else {
+			settrect(x, y, w, h);	
+		}
 		images[imagenum].copyPixels(images[imagenumfrom], trect, tl);
 	}
 	
