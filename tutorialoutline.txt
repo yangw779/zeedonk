@@ -2,7 +2,7 @@ A simple program:
 
 -
 
-trace("hello world")
+trace("hello world");
 
 -
 
@@ -22,7 +22,7 @@ For loops:
 
 -
 
-for (i in 0...100)
+for (i in 0 ... 100)
 	trace((100-i)+"bottles of beer on the wall");
 
 -
@@ -33,7 +33,7 @@ More for loops:
 
 -
 
-var exclamation = ["I","like","big","butts"];
+var exclamation = ["I","like","big","zeedonks"];
 for (s in exclamation)
   trace(s);
 
@@ -87,6 +87,47 @@ function update() {
 
 -
 
-For more, browse the examples via the examples dropdown in the <a class="tutoriallink" href="../editor.html">editor</a>, or browse the many examples in the <a class="tutoriallink" href="index.html">library reference</a>.
+Switch cases in Zeedonk look like this:
+
+-
+var animal = "zeedonk";
+
+//Note that you can have multiple patterns,
+//and that break commands are not used.
+switch (animal) {
+  case "zebra", "donkey":
+    trace("zeedonkish");
+  case "zeedonk":
+    trace("zeedonk");
+  default:
+    trace ("not zeedonk");
+}
+-
+
+You can use && for AND and || for OR in if statements:
+
+-
+var animal1 = "zebra";
+var animal2 = "donkey";
+
+if((animal1 == "zebra" || animal1 == "donkey") && 
+   (animal2 == "zebra" || animal2 == "donkey") && 
+   animal1 != animal2){
+  trace("ZEEDONK");
+}else{
+  trace("NOT ZEEDONK");
+}
+-
+
+You can use the keyword <b>null</b> to check for unset variables.
+
+-
+var nothing;
+trace(nothing);
+if(nothing == null) nothing = "something";
+trace(nothing);
+-
+
+For more, browse the examples via the examples dropdown in <a class="tutoriallink" href="../editor.html">the editor</a>, or browse the many examples in the <a class="tutoriallink" href="index.html">library reference</a>.
 
 Good luck!

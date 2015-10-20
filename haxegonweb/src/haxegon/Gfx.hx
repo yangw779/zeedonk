@@ -37,7 +37,7 @@ class Gfx {
 		initgfx(Std.int(width), Std.int(height), scale);
 		#if haxegonweb
 		#if (js || html5)
-			onResize(null);
+			onresize(null);
 		#end
 		#end
 		Text.init(gfxstage);
@@ -1505,8 +1505,8 @@ class Gfx {
 			gfxstage = stage;
 			
 			#if (js || html5)
-			onResize(null);
-			stage.addEventListener(Event.RESIZE, onResize);
+			onresize(null);
+			stage.addEventListener(Event.RESIZE, onresize);
 			#end
 		}
 		clearscreeneachframe = true;
@@ -1516,9 +1516,8 @@ class Gfx {
 	}	
 	
 	#if html5
-	private static function onResize(e:Event):Void {
-		//trace(gfxstage.stageWidth, gfxstage.stageHeight);
-		//Window.devicePixelratio
+	private static function onresize(e:Event):Void {
+		//trace("Gfx.onresize called.");
 		var scaleX:Float;
 		var scaleY:Float;
 		
@@ -1533,16 +1532,23 @@ class Gfx {
 			gfxstage.x = (gfxstage.stageWidth - screenwidth * jsscaleeditor) / 2;
 			gfxstage.y = (gfxstage.stageHeight - screenheight * jsscaleeditor) / 2;
 		}else {
+			//trace("screenwidth:", screenwidth);
+			//trace("screenheight:", screenheight);
+			//trace("gfxstage.stageWidth: ", gfxstage.stageWidth);
+			//trace("gfxstage.stageHeight: ", gfxstage.stageHeight);
 		  scaleX = Math.floor(gfxstage.stageWidth / screenwidth);
-			scaleY = Math.floor(gfxstage.stageHeight / screenheight);			
+			scaleY = Math.floor(gfxstage.stageHeight / screenheight);
+			//trace("scale: (" + scaleX + ", " + scaleY +")");
 			
 			var jsscale:Int = Convert.toint(Math.min(scaleX, scaleY));
+			//trace("Intscale: " + jsscale);
 			
 			gfxstage.scaleX = jsscale;
 			gfxstage.scaleY = jsscale;
 			
 			gfxstage.x = (gfxstage.stageWidth - screenwidth * jsscale) / 2;
 			gfxstage.y = (gfxstage.stageHeight - screenheight * jsscale) / 2;
+			//trace("gfxstage.pos: (" + gfxstage.x + ", " + gfxstage.y +")");
 		}
 	}
 	#end

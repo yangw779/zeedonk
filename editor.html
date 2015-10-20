@@ -79,7 +79,7 @@ function update() {
 </optgroup>
 <optgroup label="Advanced">
 <option value="game_cloneavoid">Clone Avoid</option>
-<option value="game_supershot">Super Shot</option>
+<option value="game_supershot">Fancy Shooter Example</option>
 </optgroup>
 <optgroup label="Tools">
 <option value="tool_spriteeditor">Sprite Editor</option>
@@ -117,7 +117,10 @@ function update() {
 	<span class="soundbutton"><a id="newsound1" title="pew pew sound" href="javascript:void('Generate Pew Pew Sound');"><span class="button9" alt="pew pew pew"></span></a></span>
 	<span class="soundbutton"><a id="newsound6" title="selection sound" href="javascript:void('Generate Selection Sound');"><span class="button10" alt="selection sound"></span></a></span>
 	<span class="soundbutton"><a id="newsound8" title="random sound" href="javascript:void('Generate Random Sound');"><span class="button11" alt="random sound"></span></a></span>
-	<span style="position:absolute;top:0px;right:5px;" class="soundbutton"><a target="musiceditor" href="play.html?demo=tool_musiceditor">&nbsp;&nbsp;<span class="button12" alt="selection sound"></span>&nbsp;&nbsp;</a></span>
+
+	<span style="position:absolute;top:0px;right:5px;" class="soundbutton">
+	<a target="musiceditor" href="play.html?demo=tool_musiceditor">&nbsp;&nbsp;<span class="button12" alt="selection sound"></span>&nbsp;&nbsp;</a> 
+	<a target="spriteeditor" href="play.html?demo=tool_spriteeditor">&nbsp;&nbsp;<span class="button13" alt="selection sound"></span>&nbsp;&nbsp;</a></span>
 	</div></div>
 	<div class="lowerarea" id="lowerarea">
 <div class="clearconsolebutton" style="float:right;position:fixed;right:4px;"><a id="clearConsoleClick" title="clears the console" href="javascript:void('Clear Console');"><span class="button1" alt="clear console contents"></span></a></div>
@@ -131,7 +134,7 @@ function update() {
 This is still beta! It's changing every day!<br><br>
 It's basically feature complete, but we will be making changes over the next week that might break things. So be warned!<br><br>
 We're super interested in all feedback you might have.  Post feedback here - https://groups.google.com/forum/#!forum/zeedonk, if you encounter bugs, you can post them here :<br> <br>
-<a href="https://github.com/increpare/zeedonk/issues/new">https://github.com/increpare/zeedonk/issues/new</a><br><br>
+<a href="https://github.com/terrycavanagh/zeedonk/issues/new">https://github.com/terrycavanagh/zeedonk/issues/new</a><br><br>
 Uh, thanks so much for checking this out!<br><br>
 S+T
 <br>
@@ -139,6 +142,7 @@ S+T
 	</div>
 </div>
 
+<div id="color-picker" style="display:none;" class="cp-small"></div>
 
 <!--TOREPLACE-->
 <script type="text/javascript" src="haxegonweb/bin/html5/bin/lib/soundjs.min.js"></script>
@@ -149,41 +153,6 @@ S+T
 
 <script type="text/javascript" src="FlexiColorPicker/colorpicker.js"></script>
 
-
-<div id="color-picker" style="display:none;" class="cp-small"></div>
-
-    <script type="text/javascript">
-
-     var colorPicker = document.getElementById('color-picker');
-     var colorPickerDat = ColorPicker(
-        colorPicker,
-
-        function(hex, hsv, rgb) {
-          var cursor = colorPickCursorPos;//editor.getCursor();
-          var range = getMatchRange(cursor);
-          
-          var start = {
-	        line: cursor.line,
-	        ch: range.start+2
-	      };
-	      var end = {
-	        line: cursor.line,
-	        ch: range.end
-	      };
-	      if (hex[0]==="#"){
-	      	hex=hex.slice(1);
-	      } else {
-	      	hex=hex.slice(2);
-	      }
-		  editor.replaceRange(hex, start, end,"+");
-	      //console.log(hsv.h, hsv.s, hsv.v);         // [0-359], [0-1], [0-1]
-          //console.log(rgb.r, rgb.g, rgb.b);         // [0-255], [0-255], [0-255]
-          //document.body.style.backgroundColor = hex;        // #HEX
-
-        });
-
-    </script>
-    
 <script type="text/javascript" src="js/autocompleteArrays.js"></script>
 <script type="text/javascript" src="js/rng.js"></script>
 <script type="text/javascript" src="js/riffwave.js"></script>
